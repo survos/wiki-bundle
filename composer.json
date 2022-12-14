@@ -1,31 +1,51 @@
 {
-  "name": "survos/wiki-bundle",
-  "type": "symfony-bundle",
-  "description": "Interact with wikidata and wikipedia",
-  "keywords": ["symfony-ux", "symfony6"],
-
-  "license": "MIT",
-  "require": {
-    "php": "^8.1",
-    "symfony/config": "^6.1.0",
-    "symfony/dependency-injection": "^6.1.0",
-    "symfony/http-kernel": "^6.1.0",
-    "twig/twig": "^3.4",
-    "freearhey/wikidata": "^3.6",
-    "symfony/cache": "^6.2"
-  },
-  "autoload": {
-    "psr-4": {
-      "Survos\\WikiBundle\\": "src/"
+    "name": "survos/wiki-bundle",
+    "type": "symfony-bundle",
+    "description": "Interact with wikidata and wikipedia",
+    "keywords": ["symfony-ux", "symfony6"],
+    "license": "MIT",
+    "require": {
+        "php": "^8.1",
+        "symfony/config": "^6.1.0",
+        "symfony/dependency-injection": "^6.1.0",
+        "symfony/http-kernel": "^6.1.0",
+        "twig/twig": "^3.4",
+        "freearhey/wikidata": "^3.6",
+        "symfony/cache": "^6.2"
+    },
+    "autoload": {
+        "psr-4": {
+            "Survos\\WikiBundle\\": "src/"
+        }
+    },
+    "require-dev": {
+        "phpstan/phpstan": "^1.7",
+        "symfony/browser-kit": "^6.1.0",
+        "symfony/framework-bundle": "^6.1.0",
+        "symfony/phpunit-bridge": "^6.1.0",
+        "symfony/twig-bundle": "^6.1.0",
+        "symfony/var-dumper": "^6.1.0",
+        "symfony/webpack-encore-bundle": "^1.11"
+    },
+    "conflict": {
+        "survos/barcode-bundle": "<1.2.32",
+        "survos/workflow-helper-bundle": "<1.2.32",
+        "survos/providence-bundle": "<1.2.32",
+        "survos/crawler-bundle": "<1.2.32",
+        "survos/ruler-bundle": "<1.2.32",
+        "survos/tree-bundle": "<1.2.32",
+        "survos/stripe-product": "<1.2.32",
+        "survos/inspection-bundle": "<1.2.32",
+        "survos/doc-bundle": "<1.2.32",
+        "survos/core-bundle": "<1.2.32",
+        "survos/faker-bundle": "<1.2.32",
+        "survos/bootstrap-bundle": "<1.2.32",
+        "survos/auth-bundle": "<1.2.32",
+        "survos/html-prettify-bundle": "<1.2.32",
+        "survos/command-bundle": "<1.2.32",
+        "survos/grid-bundle": "<1.2.32",
+        "survos/maker-bundle": "<1.2.32",
+        "survos/location-bundle": "<1.2.32",
+        "survos/api-grid-bundle": "<1.2.32"
     }
-  },
-  "require-dev": {
-    "phpstan/phpstan": "^1.7",
-    "symfony/browser-kit": "^6.1.0",
-    "symfony/framework-bundle": "^6.1.0",
-    "symfony/phpunit-bridge": "^6.1.0",
-    "symfony/twig-bundle": "^6.1.0",
-    "symfony/var-dumper": "^6.1.0",
-    "symfony/webpack-encore-bundle": "^1.11"
-  }
 }
