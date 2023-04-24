@@ -2,7 +2,10 @@
     "name": "survos/wiki-bundle",
     "type": "symfony-bundle",
     "description": "Interact with wikidata and wikipedia",
-    "keywords": ["symfony-ux", "symfony6"],
+    "keywords": [
+        "symfony-ux",
+        "symfony6"
+    ],
     "license": "MIT",
     "require": {
         "php": "^8.1",
