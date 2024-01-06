@@ -27,6 +27,39 @@ class WikiService
 
     }
 
+    public function getCacheTimeout(): int
+    {
+        return $this->cacheTimeout;
+    }
+
+    public function setCacheTimeout(int $cacheTimeout): WikiService
+    {
+        $this->cacheTimeout = $cacheTimeout;
+        return $this;
+    }
+
+    public function getCache(): CacheInterface
+    {
+        return $this->cache;
+    }
+
+    public function setCache(CacheInterface $cache): WikiService
+    {
+        $this->cache = $cache;
+        return $this;
+    }
+
+    public function getWikidata(): Wikidata
+    {
+        return $this->wikidata;
+    }
+
+    public function setWikidata(Wikidata $wikidata): WikiService
+    {
+        $this->wikidata = $wikidata;
+        return $this;
+    }
+
     public function fetchWikidataPage(?string $code, string $lang = 'en'): ?Entity
     {
         if (is_null($code)) {
