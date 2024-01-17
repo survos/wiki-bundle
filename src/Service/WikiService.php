@@ -5,6 +5,7 @@ namespace Survos\WikiBundle\Service;
 use App\Entity\WikiInterface;
 use Doctrine\ORM\EntityManagerInterface;
 use Psr\Log\LoggerInterface;
+use Symfony\Component\Cache\CacheItem;
 use Symfony\Component\String\Slugger\AsciiSlugger;
 use Symfony\Contracts\Cache\CacheInterface;
 use Symfony\Contracts\Cache\ItemInterface;
@@ -65,15 +66,23 @@ class WikiService
         if (is_null($code)) {
             return null;
         }
-        $value = $this->cache->get($code . $lang, function (ItemInterface $item) use ($code, $lang) {
-            $item->expiresAfter($this->cacheTimeout);
-            try {
-                $content = $this->wikidata->get($code, $lang);
-            } catch (\Exception $exception) {
-                dd($code,  $lang, $exception);
-            }
-            return $content;
-        });
+
+        $key = $code . $lang;
+        /** @var CacheItem $item */
+        $item = $this->cache->getItem($key);
+        if ($item->isHit()) {
+            $value = $item->get();
+        } else {
+            $value = $this->cache->get($key, function (ItemInterface $item) use ($code, $lang) {
+                $item->expiresAfter($this->cacheTimeout);
+                try {
+                    $content = $this->wikidata->get($code, $lang);
+                } catch (\Exception $exception) {
+                    dd($code,  $lang, $exception);
+                }
+                return $content;
+            });
+        }
         return $value;
         return $value->entities->$code;
     }
