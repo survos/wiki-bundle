@@ -8,12 +8,12 @@
     ],
     "license": "MIT",
     "require": {
-        "php": "^8.1",
+        "php": "^8.2",
         "symfony/config": "^6.3 || ^7.0",
         "symfony/dependency-injection": "^6.3 || ^7.0",
         "symfony/http-kernel": "^6.3 || ^7.0",
         "twig/twig": "^3.4",
-        "freearhey/wikidata": "^3.6",
+        "survos/wikidata": "^4.0",
         "symfony/cache": "^6.3 || ^7.0"
     },
     "autoload": {
