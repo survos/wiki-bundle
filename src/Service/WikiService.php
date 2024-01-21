@@ -21,7 +21,7 @@ class WikiService
                                 private LoggerInterface     $logger,
                                 private HttpClientInterface $client,
                                 private int                 $searchLimit,
-                                private int                 $cacheTimeout=0,
+                                private int                 $cacheTimeout = 0,
     )
     {
         $this->wikidata = new Wikidata();
@@ -68,23 +68,18 @@ class WikiService
         }
 
         $key = $code . $lang;
-        /** @var CacheItem $item */
-        $item = $this->cache->getItem($key);
-        if ($item->isHit()) {
-            $value = $item->get();
-        } else {
-            $value = $this->cache->get($key, function (ItemInterface $item) use ($code, $lang) {
-                $item->expiresAfter($this->cacheTimeout);
-                try {
-                    $content = $this->wikidata->get($code, $lang);
-                } catch (\Exception $exception) {
-                    dd($code,  $lang, $exception);
-                }
-                return $content;
-            });
-        }
+        $value = $this->cache->get($key, function (ItemInterface $item) use ($code, $lang) {
+            $item->expiresAfter($this->cacheTimeout);
+            try {
+                $content = $this->wikidata->get($code, $lang);
+            } catch (\Exception $exception) {
+                // @todo: log error
+                return null;
+//                dd($code, $lang, $exception);
+            }
+            return $content;
+        });
         return $value;
-        return $value->entities->$code;
     }
 
 
