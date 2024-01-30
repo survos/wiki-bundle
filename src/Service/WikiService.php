@@ -70,8 +70,8 @@ class WikiService
         $key = $code . $lang;
         $value = $this->cache->get($key, function (ItemInterface $item) use ($code, $lang) {
             $item->expiresAfter($this->cacheTimeout);
-            try {
                 $content = $this->wikidata->get($code, $lang);
+            try {
             } catch (\Exception $exception) {
                 // @todo: log error
                 return null;
