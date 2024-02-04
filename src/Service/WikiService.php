@@ -2,7 +2,7 @@
 
 namespace Survos\WikiBundle\Service;
 
-use App\Entity\WikiInterface;
+use Survos\WikiBundle\Meta\WikiInterface;
 use Doctrine\ORM\EntityManagerInterface;
 use Psr\Log\LoggerInterface;
 use Symfony\Component\Cache\CacheItem;
@@ -17,15 +17,14 @@ class WikiService
 {
     private Wikidata $wikidata;
 
-    public function __construct(private CacheInterface      $cache,
-                                private LoggerInterface     $logger,
-                                private HttpClientInterface $client,
-                                private int                 $searchLimit,
-                                private int                 $cacheTimeout = 0,
-    )
-    {
+    public function __construct(
+        private CacheInterface $cache,
+        private LoggerInterface $logger,
+        private HttpClientInterface $client,
+        private int $searchLimit,
+        private int $cacheTimeout = 0,
+    ) {
         $this->wikidata = new Wikidata();
-
     }
 
     public function getCacheTimeout(): int
@@ -70,13 +69,7 @@ class WikiService
         $key = $code . $lang;
         $value = $this->cache->get($key, function (ItemInterface $item) use ($code, $lang) {
             $item->expiresAfter($this->cacheTimeout);
-                $content = $this->wikidata->get($code, $lang);
-            try {
-            } catch (\Exception $exception) {
-                // @todo: log error
-                return null;
-//                dd($code, $lang, $exception);
-            }
+            $content = $this->wikidata->get($code, $lang);
             return $content;
         });
         return $value;
@@ -108,48 +101,39 @@ class WikiService
 
         $code = md5($url);
 
-
         // hack or ack, move this to a service, so we can use it when loading the database.
         $value = $this->cache->get($code, function (ItemInterface $item) use ($url) {
             $item->expiresAfter(3600 * 24 * 7);
             $content = $this->client->request('GET', $url)->getContent();
             $content = json_decode($content);
-            try {
-            } catch (\Exception $exception) {
-
-                $content = null; // not found?
-            }
             return $content;
         });
-        dd($value, $url);
 
         return $value->search;
-
     }
 
 //https://www.wikidata.org/wiki/Special:EntityData/P105.json
 // qCode or pCode
-    public function fetchWikidataPageHttp(string $code)
-    {
-        $value = $this->cache->get($code . 'x', function (ItemInterface $item) use ($code) {
-            $item->expiresAfter(3600 * 24 * 7);
-            $this->searchW();
+//    public function fetchWikidataPageHttp(string $code)
+//    {
+//        $value = $this->cache->get($code . 'x', function (ItemInterface $item) use ($code) {
+//            $item->expiresAfter(3600 * 24 * 7);
+//            $this->searchWikiDataHttp();
+//
+//
+//            $content = $this->client->request('GET', $url)->getContent();
+//            $content = json_decode($content);
+//            try {
+//            } catch (\Exception $exception) {
+//                $content = null; // not found?
+//            }
+//            return $content;
+//        });
+//        return $value->entities->$code;
+//    }
 
 
-            $content = $this->client->request('GET', $url)->getContent();
-            $content = json_decode($content);
-            try {
-            } catch (\Exception $exception) {
-
-                $content = null; // not found?
-            }
-            return $content;
-        });
-        return $value->entities->$code;
-    }
-
-
-    private function snakValue($claim)
+    private function snakValue($claim): mixed
     {
         $snak = $claim->mainsnak;
         $snakType = $snak->snaktype;
@@ -167,22 +151,22 @@ class WikiService
             };
         }
         return $value;
-
     }
 
 
-    public function findPropertyByName(string $name, WikiInterface|Tax $entity)
+    public function findPropertyByName(string $name, WikiInterface $entity): mixed
     {
         $pCode = match ($name) {
             'parentId' => 'P171',
-            'taxOn' => 'P105'
+            'taxOn' => 'P105',
+            default => null
         };
-        return $this->findProperty($entity, $pCode);
+        return $pCode ? $this->findProperty($entity, $pCode): null;
     }
 
-    public function findProperty(WikiInterface|Tax $entity, string $pCode)
+    public function findProperty(WikiInterface $entity, string $pCode)
     {
-        $data = $entity->getData();
+        $data = $entity->getWikiData();
 
 //        assert(property_exists($data->claims, $pCode), "$pCode missing in claims " . json_encode(array_keys((array)$data->claims)));
         if (property_exists($data->claims, $pCode)) {
@@ -201,10 +185,7 @@ class WikiService
     public function fetchWikipediaPage(string $title, WikiInterface $wikiEntity = null): ?string
     {
         $value = null;
-        $slugger = new AsciiSlugger();
-//        $title = $wikiEntity->getWikiTitle();
         foreach (['en'] as $lang) {
-//            $url = $wikiEntity::getWikipediaPage($title, $lang);
             $url = sprintf('https://%s.wikipedia.org/wiki/%s?action=raw', $lang, $title);
             $key = md5($url);
 
@@ -233,7 +214,5 @@ class WikiService
         }
 
         return $value;
-
     }
-
 }
