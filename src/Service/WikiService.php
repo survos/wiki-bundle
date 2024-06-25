@@ -19,9 +19,9 @@ class WikiService
 
     public function __construct(
         private CacheInterface $cache,
-        private LoggerInterface $logger,
-        private HttpClientInterface $client,
-        private int $searchLimit,
+        private readonly LoggerInterface $logger,
+        private readonly HttpClientInterface $client,
+        private readonly int $searchLimit,
         private int $cacheTimeout = 0,
     ) {
         $this->wikidata = new Wikidata();
@@ -164,6 +164,7 @@ class WikiService
         return $pCode ? $this->findProperty($entity, $pCode): null;
     }
 
+    // find a property within an entity, e.g. find the image
     public function findProperty(WikiInterface $entity, string $pCode)
     {
         $data = $entity->getWikiData();
@@ -189,12 +190,12 @@ class WikiService
             $url = sprintf('https://%s.wikipedia.org/wiki/%s?action=raw', $lang, $title);
             $key = md5($url);
 
-            $content = $this->cache->get($key, function (ItemInterface $item) use ($url) {
+            $content = $this->cache->get($key, function (ItemInterface $item) use ($url): ?string {
                 $item->expiresAfter(3600 * 24 * 2100);
                 $this->logger->warning("fetching " . $url);
                 try {
                     $content = $this->client->request('GET', $url)->getContent();
-                } catch (\Exception $exception) {
+                } catch (\Exception) {
                     $content = null; // not found?
                 }
                 return $content;
