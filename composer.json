@@ -13,7 +13,7 @@
         "symfony/dependency-injection": "^6.4 || ^7.1",
         "symfony/http-kernel": "^6.4 || ^7.1",
         "twig/twig": "^3.4",
-        "survos/wikidata": "^5.0",
+        "survos/wikidata": "^1.5",
         "symfony/cache": "^6.4 || ^7.1"
     },
     "require-dev": {
