@@ -183,7 +183,7 @@ class WikiService
 
 
     // fetch the page, return the qqcode
-    public function fetchWikipediaPage(string $title, WikiInterface $wikiEntity = null): ?string
+    public function fetchWikipediaPage(string $title, ?WikiInterface $wikiEntity = null): ?string
     {
         $value = null;
         foreach (['en'] as $lang) {
