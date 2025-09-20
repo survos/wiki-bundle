@@ -3,7 +3,6 @@
 namespace Survos\WikiBundle\Service;
 
 use Survos\WikiBundle\Meta\WikiInterface;
-use Doctrine\ORM\EntityManagerInterface;
 use Psr\Log\LoggerInterface;
 use Symfony\Component\Cache\CacheItem;
 use Symfony\Component\String\Slugger\AsciiSlugger;
@@ -13,16 +12,17 @@ use Symfony\Contracts\HttpClient\HttpClientInterface;
 use Wikidata\Entity;
 use Wikidata\Wikidata;
 
+#[\Deprecated("Use WikidataService instead")]
 class WikiService
 {
     private Wikidata $wikidata;
 
     public function __construct(
-        private CacheInterface $cache,
         private readonly LoggerInterface $logger,
         private readonly HttpClientInterface $client,
         private readonly int $searchLimit,
         private int $cacheTimeout = 0,
+        private ?CacheInterface $cache=null,
     ) {
         $this->wikidata = new Wikidata();
     }
@@ -147,8 +147,9 @@ class WikiService
             $value = match ($datatype) {
                 'commonsMedia' => $snak->datavalue->value,
                 'wikibase-item' => $snak->datavalue->value->id,
-                default => dd($snak)
+                default => null
             };
+            assert($value, "Invalid $datatype");
         }
         return $value;
     }
@@ -165,7 +166,7 @@ class WikiService
     }
 
     // find a property within an entity, e.g. find the image
-    public function findProperty(WikiInterface $entity, string $pCode)
+    public function findProperty(WikiInterface $entity, string $pCode): mixed
     {
         $data = $entity->getWikiData();
 
@@ -176,9 +177,8 @@ class WikiService
                 $snak = $this->snakValue($claim);
                 return $snak;
             }
-        } else {
-            return null;
         }
+        return null;
     }
 
 

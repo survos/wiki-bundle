@@ -2,6 +2,9 @@
 
 namespace Survos\WikiBundle;
 
+use Survos\WikiBundle\Command\WikidataSearchCommand;
+use Survos\WikiBundle\Command\WikidataShowCommand;
+use Survos\WikiBundle\Service\WikidataService;
 use Survos\WikiBundle\Service\WikiService;
 use Symfony\Component\Config\Definition\Configurator\DefinitionConfigurator;
 use Symfony\Component\DependencyInjection\ContainerBuilder;
@@ -15,18 +18,32 @@ class SurvosWikiBundle extends AbstractBundle
 {
     public function loadExtension(array $config, ContainerConfigurator $container, ContainerBuilder $builder): void
     {
-        $serviceId = 'survos_wiki.wiki_service';
-        $container->services()->alias(WikiService::class, $serviceId);
-        $definition = $builder->autowire($serviceId, WikiService::class)
-            ->setPublic(true);
+//        $serviceId = 'survos_wiki.wiki_service';
+//        $container->services()->alias(WikiService::class, $serviceId);
+//        $definition = $builder->autowire($serviceId, WikiService::class)
+//            ->setPublic(true);
+//
+//        $definition->setArgument('$cache', new Reference('cache.app'));
+//        $definition->setArgument('$client', new Reference('http_client'));
+//        $definition->setArgument('$logger', new Reference('logger'));
+////        $definition->setArgument('$wikidata', new Reference(Wikidata::class));
+//
+//        $definition->setArgument('$searchLimit', $config['search_limit']);
+//        $definition->setArgument('$cacheTimeout', $config['cache_timeout']);
 
-        $definition->setArgument('$cache', new Reference('cache.app'));
-        $definition->setArgument('$client', new Reference('http_client'));
-        $definition->setArgument('$logger', new Reference('logger'));
-//        $definition->setArgument('$wikidata', new Reference(Wikidata::class));
+        foreach ([WikidataService::class] as $class) {
+            $builder->autowire($class)
+                ->setPublic(true)
+                ->setAutoconfigured(true);
+        }
 
-        $definition->setArgument('$searchLimit', $config['search_limit']);
-        $definition->setArgument('$cacheTimeout', $config['cache_timeout']);
+        foreach ([WikidataShowCommand::class, WikidataSearchCommand::class] as $class) {
+            $builder->autowire($class)
+                ->setPublic(true)
+                ->setAutoconfigured(true)
+                ->addTag('console.command')
+                ;
+        }
 
 
         // $builder->setParameter('survos_workflow.direction', $config['direction']);
