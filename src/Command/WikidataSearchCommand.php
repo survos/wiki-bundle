@@ -52,12 +52,12 @@ final class WikidataSearchCommand
         }
 
         // Execute the search
-        /** @var SearchResult[] $results */
         if ($property !== null) {
             if ($value === null || $value === '') {
                 $io->error('When using --property, you must also provide --value (QID or literal).');
                 return Command::FAILURE;
             }
+            /** @var SearchResult[] $results */
             $results = $this->wikidata->searchBy($property, $value, $locale, $limit);
         } else {
             if ($query === null || $query === '') {

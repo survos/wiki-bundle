@@ -128,7 +128,6 @@ final class WikidataService
      * Fetch a single entity core and (optionally) a reduced set of claims.
      *
      * @param string[] $props Array of P-codes (e.g. ['P18']) to fetch. Pass [] to skip claims.
-     * @return array{id:string,label:?string,description:?string,aliases:array<int,string>,sitelinks:array<string,mixed>,wiki_url:?string,claims?:array<string,array<int,mixed>>>}
      */
     public function get(string $qid, string $lang = 'en', array $props = []): array
     {
@@ -225,7 +224,7 @@ final class WikidataService
     private function wbGetEntities(array $ids, string $lang, bool $includeSitelinks = true): array
     {
         // sanitize and chunk
-        $ids = array_values(array_unique(array_filter($ids, static fn($v) => \is_string($v) && $v !== '')));
+        $ids = array_values(array_unique(array_filter($ids)));
         if ($ids === []) {
             return [];
         }
@@ -308,7 +307,7 @@ final class WikidataService
     private function fetchClaimsForProps(string $qid, string $lang, array $props): array
     {
         // Sanitize to P-codes and dedupe
-        $props = \array_values(\array_unique(\array_filter($props, static fn($p) => \is_string($p) && \preg_match('/^P\d+$/', $p))));
+        $props = \array_values(\array_unique(\array_filter($props, static fn($p) => preg_match('/^P\d+$/', $p))));
 
         if ($props === []) {
             return [];

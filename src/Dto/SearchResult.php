@@ -29,9 +29,6 @@ final class SearchResult
     {
         $id = (string)($data['id'] ?? '');
         $aliases = $data['aliases'] ?? [];
-        if (!\is_array($aliases)) {
-            $aliases = [];
-        }
 
         $wikiUrl = $data['wiki_url'] ?? null;
         if (!$wikiUrl && isset($data['sitelinks'][$lang]['url'])) {
