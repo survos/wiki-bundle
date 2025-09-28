@@ -12,7 +12,7 @@ use Symfony\Contracts\HttpClient\HttpClientInterface;
 use Wikidata\Entity;
 use Wikidata\Wikidata;
 
-#[\Deprecated("Use WikidataService instead")]
+//#[\Deprecated("Use WikidataService instead")]
 class WikiService
 {
     private Wikidata $wikidata;
