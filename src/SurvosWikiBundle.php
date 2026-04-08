@@ -1,21 +1,36 @@
 <?php
 
+declare(strict_types=1);
+
 namespace Survos\WikiBundle;
 
 use Survos\WikiBundle\Command\WikidataSearchCommand;
 use Survos\WikiBundle\Command\WikidataShowCommand;
 use Survos\WikiBundle\Service\WikidataService;
-use Survos\WikiBundle\Service\WikiService;
 use Symfony\Component\Config\Definition\Configurator\DefinitionConfigurator;
 use Symfony\Component\DependencyInjection\ContainerBuilder;
 use Symfony\Component\DependencyInjection\Loader\Configurator\ContainerConfigurator;
-use Symfony\Component\DependencyInjection\Reference;
 use Symfony\Component\HttpKernel\Bundle\AbstractBundle;
-use Wikidata\Wikidata;
-
 
 class SurvosWikiBundle extends AbstractBundle
 {
+    public function prependExtension(ContainerConfigurator $container, ContainerBuilder $builder): void
+    {
+        $builder->prependExtensionConfig('doctrine', [
+            'orm' => [
+                'mappings' => [
+                    'SurvosWikiBundle' => [
+                        'is_bundle' => false,
+                        'type' => 'attribute',
+                        'dir' => dirname(__DIR__) . '/src/Entity',
+                        'prefix' => 'Survos\WikiBundle\Entity',
+                        'alias' => 'Wiki',
+                    ],
+                ],
+            ],
+        ]);
+    }
+
     public function loadExtension(array $config, ContainerConfigurator $container, ContainerBuilder $builder): void
     {
 //        $serviceId = 'survos_wiki.wiki_service';
