@@ -4,87 +4,98 @@ declare(strict_types=1);
 
 namespace Survos\WikiBundle;
 
-use Survos\WikiBundle\Command\WikidataSearchCommand;
-use Survos\WikiBundle\Command\WikidataShowCommand;
+use Survos\Kit\AbstractSurvosBundle;
+use Survos\Kit\SurvosKitBundle;
+use Survos\Kit\Traits\HasConfigurableRoutes;
+use Survos\Kit\Traits\HasDoctrineEntities;
 use Survos\WikiBundle\Service\WikidataService;
 use Symfony\Component\Config\Definition\Configurator\DefinitionConfigurator;
 use Symfony\Component\DependencyInjection\ContainerBuilder;
+use Symfony\Component\DependencyInjection\Kernel\RequiredBundle;
 use Symfony\Component\DependencyInjection\Loader\Configurator\ContainerConfigurator;
-use Symfony\Component\HttpKernel\Bundle\AbstractBundle;
 
-class SurvosWikiBundle extends AbstractBundle
+/**
+ * Wikidata/Wikipedia lookup service with a cache, an admin menu, and a UI.
+ *
+ * Commands (src/Command) and controllers (src/Controller) are auto-registered by
+ * AbstractSurvosBundle; entities (src/Entity) by HasDoctrineEntities; the UI's
+ * routes by HasConfigurableRoutes. The lookup service is registered in
+ * config/services.php.
+ */
+#[RequiredBundle(SurvosKitBundle::class)]
+final class SurvosWikiBundle extends AbstractSurvosBundle
 {
-    public function prependExtension(ContainerConfigurator $container, ContainerBuilder $builder): void
+    use HasDoctrineEntities;
+    use HasConfigurableRoutes;
+
+    protected function doctrineAlias(): string
     {
-        $builder->prependExtensionConfig('doctrine', [
-            'orm' => [
-                'mappings' => [
-                    'SurvosWikiBundle' => [
-                        'is_bundle' => false,
-                        'type' => 'attribute',
-                        'dir' => dirname(__DIR__) . '/src/Entity',
-                        'prefix' => 'Survos\WikiBundle\Entity',
-                        'alias' => 'Wiki',
-                    ],
-                ],
-            ],
-        ]);
-    }
-
-    public function loadExtension(array $config, ContainerConfigurator $container, ContainerBuilder $builder): void
-    {
-//        $serviceId = 'survos_wiki.wiki_service';
-//        $container->services()->alias(WikiService::class, $serviceId);
-//        $definition = $builder->autowire($serviceId, WikiService::class)
-//            ->setPublic(true);
-//
-//        $definition->setArgument('$cache', new Reference('cache.app'));
-//        $definition->setArgument('$client', new Reference('http_client'));
-//        $definition->setArgument('$logger', new Reference('logger'));
-////        $definition->setArgument('$wikidata', new Reference(Wikidata::class));
-//
-//        $definition->setArgument('$searchLimit', $config['search_limit']);
-//        $definition->setArgument('$cacheTimeout', $config['cache_timeout']);
-
-        foreach ([WikidataService::class] as $class) {
-            $builder->autowire($class)
-                ->setPublic(true)
-                ->setAutoconfigured(true);
-        }
-
-        foreach ([WikidataShowCommand::class, WikidataSearchCommand::class] as $class) {
-            $builder->autowire($class)
-                ->setPublic(true)
-                ->setAutoconfigured(true)
-                ->addTag('console.command')
-                ;
-        }
-
-
-        // $builder->setParameter('survos_workflow.direction', $config['direction']);
-
-        // twig classes
-
-/*
-$definition = $builder
-->autowire('survos.barcode_twig', BarcodeTwigExtension::class)
-->addTag('twig.extension');
-
-$definition->setArgument('$widthFactor', $config['widthFactor']);
-$definition->setArgument('$height', $config['height']);
-$definition->setArgument('$foregroundColor', $config['foregroundColor']);
-*/
-
+        return 'Wiki';
     }
 
     public function configure(DefinitionConfigurator $definition): void
     {
-        $definition->rootNode()
-            ->children()
-                ->integerNode('search_limit')->defaultValue(20)->end()
-                ->integerNode('cache_timeout')->defaultValue(0)->end()
-                ->booleanNode('enabled')->defaultTrue()->end()
-            ->end();
+        $children = $definition->rootNode()->children();
+        $this->addRouteOptions($children, '/wiki');
+
+        $children
+            ->integerNode('search_limit')->defaultValue(20)->end()
+            ->integerNode('cache_timeout')->defaultValue(86400)->end()
+            ->booleanNode('enabled')->defaultTrue()->end()
+            // Properties the app cares about, alias => P-code. get() fetches these by
+            // default (no per-call props needed); they seed the wiki_property cache.
+            // Apps override the whole map in their own survos_wiki.yaml.
+            ->arrayNode('properties')
+                ->useAttributeAsKey('alias')
+                ->scalarPrototype()->end()
+                ->defaultValue([
+                    'image'             => 'P18',
+                    'instance_of'       => 'P31',
+                    'subclass_of'       => 'P279',
+                    'country'           => 'P17',
+                    'official_language' => 'P37',
+                    'location'          => 'P131',
+                    'date_of_birth'     => 'P569',
+                    'date_of_death'     => 'P570',
+                    'place_of_birth'    => 'P19',
+                    'place_of_death'    => 'P20',
+                    'sex_or_gender'     => 'P21',
+                    'citizenship'       => 'P27',
+                    'occupation'        => 'P106',
+                    'description'       => 'P2094',
+                    'official_name'     => 'P1448',
+                    'website'           => 'P856',
+                    'inception'         => 'P571',
+                    'dissolved'         => 'P576',
+                    'headquarters'      => 'P159',
+                    'founded_by'        => 'P740',
+                    'award_received'    => 'P166',
+                ])
+            ->end()
+        ->end();
     }
 
+    public function loadExtension(array $config, ContainerConfigurator $container, ContainerBuilder $builder): void
+    {
+        parent::loadExtension($config, $container, $builder);
+
+        $this->captureRouteConfig($config);
+        $this->registerRouteLoader($builder);
+
+        // Commands + controllers are auto-scanned by the parent; the lookup service
+        // is registered here with its config values pushed in directly.
+        $container->services()
+            ->set(WikidataService::class)
+            ->arg('$searchLimit', $config['search_limit'])
+            ->arg('$cacheTtl', $config['cache_timeout'])
+            ->public()
+            ->autowire()
+            ->autoconfigure();
+    }
+
+    public function build(ContainerBuilder $container): void
+    {
+        parent::build($container);
+        $this->addRouteLoaderCompilerPass($container);
+    }
 }

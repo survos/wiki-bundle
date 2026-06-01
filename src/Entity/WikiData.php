@@ -4,130 +4,90 @@ declare(strict_types=1);
 
 namespace Survos\WikiBundle\Entity;
 
+use Doctrine\Common\Collections\ArrayCollection;
+use Doctrine\Common\Collections\Collection;
 use Doctrine\DBAL\Types\Types;
 use Doctrine\ORM\Mapping as ORM;
-use Survos\WikiBundle\Dto\WikiClaim;
+use Survos\WikiBundle\Dto\Image;
 
+/**
+ * A cached Wikidata entity: core fields in $rawData, claims normalized into WikiClaim
+ * rows. The table is a custom cache, so $refreshedAt + isStale() drive re-fetching.
+ */
 #[ORM\Entity]
 #[ORM\Table(name: 'wiki_data')]
 #[ORM\Index(columns: ['qid'], name: 'wiki_data_qid_idx')]
 class WikiData
 {
-    #[ORM\Id]
-    #[ORM\GeneratedValue]
-    #[ORM\Column(type: Types::INTEGER)]
-    private ?int $id = null;
+    #[ORM\Id, ORM\GeneratedValue, ORM\Column]
+    public ?int $id = null;
 
-    #[ORM\Column(type: Types::STRING, length: 20, unique: true)]
-    private string $qid;
+    #[ORM\Column(length: 20, unique: true)]
+    public private(set) string $qid;
 
+    /** Entity core: label, description, aliases, sitelinks, wiki_url (not claims). */
     #[ORM\Column(type: Types::JSON)]
-    private array $rawData = [];
+    public array $rawData = [];
 
-    #[ORM\Column(type: Types::DATETIME_IMMUTABLE)]
-    private readonly \DateTimeImmutable $createdAt;
+    /** @var Collection<int,WikiClaim> */
+    #[ORM\OneToMany(targetEntity: WikiClaim::class, mappedBy: 'wikiData', cascade: ['persist', 'remove'], orphanRemoval: true)]
+    public private(set) Collection $claims;
 
-    #[ORM\Column(type: Types::DATETIME_IMMUTABLE, nullable: true)]
-    private ?\DateTimeImmutable $updatedAt = null;
+    /** P-codes whose claims have been fetched (so "fetched but empty" ≠ "never fetched"). */
+    #[ORM\Column(type: Types::JSON)]
+    public array $fetchedProps = [];
+
+    #[ORM\Column(nullable: true)]
+    public ?\DateTimeImmutable $refreshedAt = null;
 
     public function __construct(string $qid)
     {
         $this->qid = $qid;
-        $this->createdAt = new \DateTimeImmutable();
+        $this->claims = new ArrayCollection();
     }
 
-    public function getId(): ?int
-    {
-        return $this->id;
+    public ?string $label {
+        get => $this->rawData['label'] ?? null;
     }
 
-    public function getQid(): string
-    {
-        return $this->qid;
+    public ?string $description {
+        get => $this->rawData['description'] ?? null;
     }
 
-    public function getRawData(): array
-    {
-        return $this->rawData;
+    public ?string $wikiUrl {
+        get => $this->rawData['wiki_url'] ?? null;
     }
 
-    public function setRawData(array $rawData): self
+    /** @return WikiClaim[] */
+    public function claimsFor(string $code): array
     {
-        $this->rawData = $rawData;
-        $this->updatedAt = new \DateTimeImmutable();
-        return $this;
+        return $this->claims->filter(fn (WikiClaim $c) => $c->code === $code)->getValues();
     }
 
-    public function getCreatedAt(): \DateTimeImmutable
+    /** @return Image[] every commonsMedia claim as a rich Image DTO (url + captions + date). */
+    public function getImages(): array
     {
-        return $this->createdAt;
+        return array_values(array_filter(array_map(
+            fn (WikiClaim $c) => $c->toImage(),
+            $this->claims->filter(fn (WikiClaim $c) => $c->isImage)->getValues(),
+        )));
     }
 
-    public function getUpdatedAt(): ?\DateTimeImmutable
+    public function addClaim(WikiClaim $claim): void
     {
-        return $this->updatedAt;
+        $this->claims->add($claim);
     }
 
-    public function getLabel(?string $lang = 'en'): ?string
+    public function removeClaimsByCode(string $code): void
     {
-        return $this->rawData['label'] ?? null;
-    }
-
-    public function getDescription(?string $lang = 'en'): ?string
-    {
-        return $this->rawData['description'] ?? null;
-    }
-
-    public function getWikiUrl(?string $lang = 'en'): ?string
-    {
-        return $this->rawData['wiki_url'] ?? null;
-    }
-
-    public function getAliases(): array
-    {
-        return $this->rawData['aliases'] ?? [];
-    }
-
-    public function getClaims(): array
-    {
-        return $this->rawData['claims'] ?? [];
-    }
-
-    public function getClaim(string $code): ?WikiClaim
-    {
-        if (!str_starts_with($code, 'P')) {
-            $code = WikiProperty::tryFrom($code)?->value;
+        foreach ($this->claimsFor($code) as $claim) {
+            $this->claims->removeElement($claim);
         }
-        if (!$code) {
-            return null;
-        }
-        $claims = $this->getClaims();
-        $values = $claims[$code] ?? null;
-        return $values ? WikiClaim::fromArray($code, $values) : null;
     }
 
-    public function image(): ?string
+    public function isStale(int $ttlSeconds, \DateTimeImmutable $now): bool
     {
-        return $this->getClaim('P18')?->first();
-    }
-
-    public function getProperty(WikiProperty $property): ?WikiClaim
-    {
-        return $this->getClaim($property->value) ?? null;
-    }
-
-    public function description(): ?string
-    {
-        return $this->rawData['description'] ?? null;
-    }
-
-    public function extendedDescription(): ?string
-    {
-        return $this->rawData['claims']['P2094'][0] ?? null;
-    }
-
-    public function bestDescription(): ?string
-    {
-        return $this->description() ?? $this->extendedDescription();
+        return $this->refreshedAt === null
+            || ($now->getTimestamp() - $this->refreshedAt->getTimestamp()) > $ttlSeconds;
     }
 }
