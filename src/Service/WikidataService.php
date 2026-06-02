@@ -3,13 +3,8 @@ declare(strict_types=1);
 
 namespace Survos\WikiBundle\Service;
 
-use Doctrine\ORM\EntityManagerInterface;
 use Psr\Log\LoggerInterface;
-use Survos\WikiBundle\Dto\Image;
 use Survos\WikiBundle\Dto\SearchResult;
-use Survos\WikiBundle\Entity\WikiClaim;
-use Survos\WikiBundle\Entity\WikiData;
-use Survos\WikiBundle\Entity\WikiProperty;
 use Symfony\Component\Console\Attribute\Argument;
 use Symfony\Component\Console\Attribute\AsCommand;
 use Symfony\Component\Console\Attribute\Option;
@@ -20,13 +15,13 @@ use Symfony\Contracts\Cache\ItemInterface;
 use Symfony\Contracts\HttpClient\HttpClientInterface;
 
 /**
- * Symfony-native Wikidata client backed by a DB cache.
+ * Symfony-native Wikidata client.
  *
- * - search() / searchBy() -> SearchResult[]  (HTTP-cached in the pool)
- * - get()                 -> WikiData entity (persisted; claims normalized into WikiClaim rows)
- * - getImages()           -> Image[]         (commonsMedia claims as rich DTOs)
+ * - search()    -> SearchResult[]
+ * - searchBy()  -> SearchResult[]
+ * - get()       -> array (entity core + optional selected claims)
  *
- * get() fetches the configured property set by default; pass $props to override.
+ * Use $props in get() (e.g. ['P18']) to avoid heavy queries when you don't need everything.
  */
 final class WikidataService
 {
@@ -37,11 +32,8 @@ final class WikidataService
         private CacheInterface $cache,
         private readonly LoggerInterface $logger,
         private readonly HttpClientInterface $http,
-        private readonly EntityManagerInterface $em,
         private readonly int $searchLimit = 10,
         private int $cacheTtl = 3600, // default 1h
-        /** @var array<string,string> alias => P-code, from config */
-        private readonly array $properties = [],
         private readonly string $userAgent = 'SurvosWikiBundle/2025 (+https://survos.com)',
     ) {}
 
