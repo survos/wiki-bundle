@@ -23,6 +23,7 @@ use Symfony\Component\DependencyInjection\Loader\Configurator\ContainerConfigura
  * config/services.php.
  */
 #[RequiredBundle(SurvosKitBundle::class)]
+// Symfony\Component\HttpKernel\Bundle\Bundle <-- Flex auto-registration marker (see Survos\Kit\AbstractSurvosBundle)
 final class SurvosWikiBundle extends AbstractSurvosBundle
 {
     use HasDoctrineEntities;
