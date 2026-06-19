@@ -44,6 +44,20 @@ final class WikidataService
     }
 
     /**
+     * Extract a "Q123" entity id from a Wikidata URL (e.g. https://www.wikidata.org/wiki/Q42),
+     * an "entity/Q42" path, or a bare id. Returns null when the value isn't a Q-code.
+     */
+    public static function extractQid(?string $value): ?string
+    {
+        if ($value === null || trim($value) === '') {
+            return null;
+        }
+        $candidate = basename(trim($value));
+
+        return preg_match('/^Q\d+$/', $candidate) === 1 ? $candidate : null;
+    }
+
+    /**
      * @return SearchResult[]
      */
     public function search(string $query, string $lang = 'en', ?int $limit = null): array
