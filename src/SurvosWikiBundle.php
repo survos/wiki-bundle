@@ -8,6 +8,7 @@ use Survos\Kit\AbstractSurvosBundle;
 use Survos\Kit\SurvosKitBundle;
 use Survos\Kit\Traits\HasConfigurableRoutes;
 use Survos\Kit\Traits\HasDoctrineEntities;
+use Survos\WikiBundle\Service\CommonsService;
 use Survos\WikiBundle\Service\WikidataService;
 use Symfony\Component\Config\Definition\Configurator\DefinitionConfigurator;
 use Symfony\Component\DependencyInjection\ContainerBuilder;
@@ -88,6 +89,13 @@ final class SurvosWikiBundle extends AbstractSurvosBundle
         $container->services()
             ->set(WikidataService::class)
             ->arg('$searchLimit', $config['search_limit'])
+            ->arg('$cacheTtl', $config['cache_timeout'])
+            ->public()
+            ->autowire()
+            ->autoconfigure();
+
+        $container->services()
+            ->set(CommonsService::class)
             ->arg('$cacheTtl', $config['cache_timeout'])
             ->public()
             ->autowire()
