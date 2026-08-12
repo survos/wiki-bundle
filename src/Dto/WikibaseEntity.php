@@ -94,7 +94,11 @@ final class WikibaseEntity
     /** First statement's value for a property, or null (the common "does this entity have a P31 of X" case). */
     public function firstValue(string $property): mixed
     {
-        return $this->statements[$property][0]->value() ?? null;
+        // NOT $this->statements[$property][0]->value() ?? null -- the trailing method call
+        // breaks ??'s isset-style suppression of the array access, so a property this entity
+        // simply doesn't have (common; not every entity carries every claim) throws an
+        // "Undefined array key" instead of returning null.
+        return ($this->statementsFor($property)[0] ?? null)?->value();
     }
 
     /** @return list<mixed> every value for a (possibly multi-valued) property. */
