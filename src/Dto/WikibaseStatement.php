@@ -60,4 +60,21 @@ final class WikibaseStatement
     {
         return $this->qualifiers[$property][0]->value ?? null;
     }
+
+    /**
+     * ALL qualifier values for a property, in order -- for repeatable qualifiers, where a single
+     * statement carries a real one-to-many relationship (e.g. an event's P29 "participant role"
+     * statement with a distinct P17 "person" qualifier for each of ~100+ people who held that
+     * role). qualifier() (singular) silently drops everything past the first in that case; this
+     * is the version that doesn't.
+     *
+     * @return list<mixed>
+     */
+    public function qualifierValues(string $property): array
+    {
+        return array_map(
+            static fn (WikibaseSnak $snak): mixed => $snak->value,
+            $this->qualifiers[$property] ?? [],
+        );
+    }
 }
