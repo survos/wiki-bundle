@@ -5,6 +5,7 @@ namespace Survos\WikiBundle\Service;
 
 use Psr\Log\LoggerInterface;
 use Survos\WikiBundle\Dto\SearchResult;
+use Survos\WikiBundle\Dto\WikibaseEntity;
 use Symfony\Component\Console\Attribute\Argument;
 use Symfony\Component\Console\Attribute\AsCommand;
 use Symfony\Component\Console\Attribute\Option;
@@ -184,6 +185,47 @@ final class WikidataService
             return null;
         }
         return $entity['claims'][$pCode][0];
+    }
+
+    /**
+     * Fetch an entity with its FULL claims (every property, every qualifier/rank), parsed
+     * into a {@see WikibaseEntity}. Unlike get(), this reads claims straight from the
+     * entity's own JSON via `wbgetentities?props=claims` — no SPARQL — so it also works
+     * against a Wikibase instance with no query service (e.g. one whose SPARQL endpoint
+     * is down or was never stood up publicly), as long as it exposes the standard
+     * MediaWiki Action API.
+     */
+    public function getEntity(string $qid, string $lang = 'en'): WikibaseEntity
+    {
+        if (!\preg_match('/^[QP]\d+$/', $qid)) {
+            throw new \InvalidArgumentException('getEntity(): $qid must be like "Q123" or "P18".');
+        }
+
+        $key = sprintf('wd.getEntity.%s.%s', $qid, $lang);
+
+        return $this->cache->get($key, function (ItemInterface $item) use ($qid, $lang): WikibaseEntity {
+            $item->expiresAfter($this->cacheTtl);
+
+            $resp = $this->http->request('GET', self::WD_API, [
+                'headers' => $this->ua() + ['Accept' => 'application/json'],
+                'query' => [
+                    'action' => 'wbgetentities',
+                    'format' => 'json',
+                    'ids' => $qid,
+                    'languages' => $lang . '|en',
+                    'props' => 'labels|descriptions|aliases|claims|sitelinks',
+                    'origin' => '*',
+                ],
+            ]);
+
+            $data = $this->safeJson($resp);
+            $raw = $data['entities'][$qid] ?? null;
+            if (!\is_array($raw)) {
+                throw new \RuntimeException("Entity $qid not found.");
+            }
+
+            return WikibaseEntity::fromArray($raw);
+        });
     }
 
     // -------------------- Console commands --------------------
