@@ -25,7 +25,8 @@ final class WikibaseSnak
         public readonly string $snakType,
         public readonly ?string $dataType,
         public readonly mixed $value,
-    ) {}
+    ) {
+    }
 
     /** @param array<string,mixed> $snak */
     public static function fromArray(array $snak): self
@@ -38,7 +39,7 @@ final class WikibaseSnak
             property: $property,
             snakType: $snakType,
             dataType: $dataType,
-            value: $snakType === 'value' ? self::simplify($snak['datavalue'] ?? null) : null,
+            value: 'value' === $snakType ? self::simplify($snak['datavalue'] ?? null) : null,
         );
     }
 

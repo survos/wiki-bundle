@@ -16,11 +16,11 @@ namespace Survos\WikiBundle\Dto;
 final class WikibaseEntity
 {
     /**
-     * @param array<string,string> $labels language => label
-     * @param array<string,string> $descriptions language => description
-     * @param array<string,list<string>> $aliases language => alias list
-     * @param array<string,list<WikibaseStatement>> $statements property (Pxx) => ordered statements
-     * @param array<string,mixed> $sitelinks raw sitelinks block, unparsed
+     * @param array<string,string>                  $labels       language => label
+     * @param array<string,string>                  $descriptions language => description
+     * @param array<string,list<string>>            $aliases      language => alias list
+     * @param array<string,list<WikibaseStatement>> $statements   property (Pxx) => ordered statements
+     * @param array<string,mixed>                   $sitelinks    raw sitelinks block, unparsed
      */
     public function __construct(
         public readonly string $id,
@@ -31,7 +31,8 @@ final class WikibaseEntity
         public readonly array $statements = [],
         public readonly array $sitelinks = [],
         public readonly ?int $lastRevId = null,
-    ) {}
+    ) {
+    }
 
     /** @param array<string,mixed> $raw */
     public static function fromArray(array $raw): self

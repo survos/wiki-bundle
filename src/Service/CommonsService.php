@@ -1,4 +1,5 @@
 <?php
+
 declare(strict_types=1);
 
 namespace Survos\WikiBundle\Service;
@@ -54,7 +55,7 @@ final class CommonsService
                 'cmtype' => 'file',
                 'cmlimit' => 500,
             ];
-            if ($cmcontinue !== null) {
+            if (null !== $cmcontinue) {
                 $query['cmcontinue'] = $cmcontinue;
             }
 
@@ -74,7 +75,7 @@ final class CommonsService
             }
 
             $cmcontinue = $data['continue']['cmcontinue'] ?? null;
-        } while ($cmcontinue !== null);
+        } while (null !== $cmcontinue);
 
         return $titles;
     }
@@ -83,6 +84,7 @@ final class CommonsService
      * Fetch url/license/author/description/GPS for a batch of file titles.
      *
      * @param string[] $titles
+     *
      * @return array<string, array{
      *   title:string, url:?string, descriptionUrl:?string, width:?int, height:?int, mime:?string,
      *   artist:?string, credit:?string, licenseShortName:?string, license:?string, licenseUrl:?string,
@@ -93,13 +95,13 @@ final class CommonsService
     public function imageInfo(array $titles): array
     {
         $titles = \array_values(\array_unique(\array_filter($titles)));
-        if ($titles === []) {
+        if ([] === $titles) {
             return [];
         }
 
         $out = [];
         foreach (\array_chunk($titles, 50) as $chunk) {
-            $key = 'commons.imageinfo.' . \md5(\implode('|', $chunk));
+            $key = 'commons.imageinfo.'.\md5(\implode('|', $chunk));
 
             $rows = $this->cache->get($key, function (ItemInterface $item) use ($chunk): array {
                 $item->expiresAfter($this->cacheTtl);
@@ -125,6 +127,7 @@ final class CommonsService
                     }
                     $rows[$page['title']] = $this->mapPage($page);
                 }
+
                 return $rows;
             });
 
@@ -175,6 +178,7 @@ final class CommonsService
      *
      * @param array<string,mixed> $page
      * @param array<string,mixed> $meta
+     *
      * @return array{0: ?float, 1: ?float}
      */
     private function extractCoordinates(array $page, array $meta): array
@@ -186,7 +190,7 @@ final class CommonsService
 
         $lat = $this->metaText($meta, 'GPSLatitude');
         $lon = $this->metaText($meta, 'GPSLongitude');
-        if ($lat !== null && $lon !== null && \is_numeric($lat) && \is_numeric($lon)) {
+        if (null !== $lat && null !== $lon && \is_numeric($lat) && \is_numeric($lon)) {
             return [(float) $lat, (float) $lon];
         }
 
@@ -204,34 +208,37 @@ final class CommonsService
     private function metaText(array $meta, string $key): ?string
     {
         $value = $meta[$key]['value'] ?? null;
-        if (!\is_string($value) || $value === '') {
+        if (!\is_string($value) || '' === $value) {
             return null;
         }
         $value = \preg_replace('/<([a-z]+)[^>]*style="[^"]*display:\s*none[^"]*"[^>]*>.*?<\/\1>/is', '', $value) ?? $value;
         $text = \trim(\html_entity_decode(\strip_tags($value), \ENT_QUOTES | \ENT_HTML5));
-        return $text !== '' ? $text : null;
+
+        return '' !== $text ? $text : null;
     }
 
     /** @return string[] */
     private function metaList(array $meta, string $key): array
     {
         $text = $this->metaText($meta, $key);
-        if ($text === null) {
+        if (null === $text) {
             return [];
         }
+
         return \array_values(\array_filter(\array_map('trim', \explode('|', $text))));
     }
 
     private function clean(mixed $value): ?string
     {
-        return \is_string($value) && $value !== '' ? $value : null;
+        return \is_string($value) && '' !== $value ? $value : null;
     }
 
     public static function normalizeCategoryTitle(string $category): string
     {
         $category = \trim($category);
         $category = \str_replace(' ', '_', $category);
-        return \str_starts_with($category, 'Category:') ? $category : 'Category:' . $category;
+
+        return \str_starts_with($category, 'Category:') ? $category : 'Category:'.$category;
     }
 
     // -------------------- Console command --------------------
@@ -245,15 +252,17 @@ final class CommonsService
         #[Option('Output format: text or json')] string $format = 'text',
     ): int {
         $titles = $this->categoryFiles($category, $limit);
-        if ($titles === []) {
+        if ([] === $titles) {
             $io->warning(\sprintf('No files found in %s', self::normalizeCategoryTitle($category)));
+
             return Command::SUCCESS;
         }
 
         $info = $this->imageInfo($titles);
 
-        if (\strtolower($format) === 'json') {
+        if ('json' === \strtolower($format)) {
             $io->writeln(\json_encode(\array_values($info), \JSON_PRETTY_PRINT | \JSON_UNESCAPED_SLASHES | \JSON_UNESCAPED_UNICODE));
+
             return Command::SUCCESS;
         }
 
@@ -263,7 +272,7 @@ final class CommonsService
             $rows[] = [
                 $row['title'],
                 $row['licenseShortName'] ?? '—',
-                $row['latitude'] !== null ? \sprintf('%.4f, %.4f', $row['latitude'], $row['longitude']) : '—',
+                null !== $row['latitude'] ? \sprintf('%.4f, %.4f', $row['latitude'], $row['longitude']) : '—',
                 $row['artist'] ?? '—',
             ];
         }
@@ -280,7 +289,7 @@ final class CommonsService
         } catch (\JsonException $e) {
             $snippet = \substr(\preg_replace('/\s+/', ' ', $content), 0, 300);
             $this->logger->error('Commons JSON decode failed', ['error' => $e->getMessage(), 'snippet' => $snippet]);
-            throw new \RuntimeException('Commons API returned non-JSON or invalid JSON. ' . $snippet, previous: $e);
+            throw new \RuntimeException('Commons API returned non-JSON or invalid JSON. '.$snippet, previous: $e);
         }
     }
 

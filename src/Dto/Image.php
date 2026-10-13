@@ -19,7 +19,8 @@ final class Image
         /** @var array<string,string> language => caption */
         public readonly array $captions = [],
         public readonly ?string $date = null,
-    ) {}
+    ) {
+    }
 
     public static function fromClaim(WikiClaim $claim): self
     {

@@ -1,4 +1,5 @@
 <?php
+
 declare(strict_types=1);
 
 namespace Survos\WikiBundle\Service;
@@ -26,7 +27,7 @@ use Symfony\Contracts\HttpClient\HttpClientInterface;
  */
 final class WikidataService
 {
-    private const WD_API    = 'https://www.wikidata.org/w/api.php';
+    private const WD_API = 'https://www.wikidata.org/w/api.php';
     private const WD_SPARQL = 'https://query.wikidata.org/sparql';
 
     public function __construct(
@@ -36,11 +37,13 @@ final class WikidataService
         private readonly int $searchLimit = 10,
         private int $cacheTtl = 3600, // default 1h
         private readonly string $userAgent = 'SurvosWikiBundle/2025 (+https://survos.com)',
-    ) {}
+    ) {
+    }
 
     public function withCacheTtl(int $seconds): self
     {
         $this->cacheTtl = $seconds;
+
         return $this;
     }
 
@@ -50,12 +53,12 @@ final class WikidataService
      */
     public static function extractQid(?string $value): ?string
     {
-        if ($value === null || trim($value) === '') {
+        if (null === $value || '' === trim($value)) {
             return null;
         }
         $candidate = basename(trim($value));
 
-        return preg_match('/^Q\d+$/', $candidate) === 1 ? $candidate : null;
+        return 1 === preg_match('/^Q\d+$/', $candidate) ? $candidate : null;
     }
 
     /**
@@ -79,7 +82,7 @@ final class WikidataService
                     $ids[] = $h['id'];
                 }
             }
-            if ($ids === []) {
+            if ([] === $ids) {
                 return [];
             }
 
@@ -89,6 +92,7 @@ final class WikidataService
             foreach ($entities as $e) {
                 $out[] = SearchResult::fromArray($e, $lang);
             }
+
             return $out;
         });
     }
@@ -108,7 +112,7 @@ final class WikidataService
         return $this->cache->get($key, function (ItemInterface $item) use ($property, $value, $lang, $limit): array {
             $item->expiresAfter($this->cacheTtl);
 
-            $subject = \preg_match('/^Q\d+$/', $value) ? "wd:$value" : '"' . \addslashes($value) . '"';
+            $subject = \preg_match('/^Q\d+$/', $value) ? "wd:$value" : '"'.\addslashes($value).'"';
 
             $sparql = <<<SPARQL
                 SELECT ?item WHERE {
@@ -130,7 +134,7 @@ final class WikidataService
                 }
             }
 
-            if ($ids === []) {
+            if ([] === $ids) {
                 return [];
             }
 
@@ -140,6 +144,7 @@ final class WikidataService
             foreach ($entities as $e) {
                 $out[] = SearchResult::fromArray($e, $lang);
             }
+
             return $out;
         });
     }
@@ -155,7 +160,7 @@ final class WikidataService
             throw new \InvalidArgumentException('get(): $qid must be like "Q123".');
         }
 
-        $propsKey = $props ? '.props.' . \implode(',', \array_values($props)) : '.props.none';
+        $propsKey = $props ? '.props.'.\implode(',', \array_values($props)) : '.props.none';
         $key = sprintf('wd.get.%s.%s%s', $qid, $lang, $propsKey);
 
         return $this->cache->get($key, function (ItemInterface $item) use ($qid, $lang, $props): array {
@@ -167,7 +172,7 @@ final class WikidataService
                 throw new \RuntimeException("Entity $qid not found.");
             }
 
-            if ($props !== []) {
+            if ([] !== $props) {
                 $claims = $this->fetchClaimsForProps($qid, $lang, $props);
                 $core['claims'] = $claims;
             }
@@ -181,9 +186,10 @@ final class WikidataService
      */
     public function firstClaim(array $entity, string $pCode): mixed
     {
-        if (!isset($entity['claims'][$pCode]) || !\is_array($entity['claims'][$pCode]) || $entity['claims'][$pCode] === []) {
+        if (!isset($entity['claims'][$pCode]) || !\is_array($entity['claims'][$pCode]) || [] === $entity['claims'][$pCode]) {
             return null;
         }
+
         return $entity['claims'][$pCode][0];
     }
 
@@ -212,7 +218,7 @@ final class WikidataService
                     'action' => 'wbgetentities',
                     'format' => 'json',
                     'ids' => $qid,
-                    'languages' => $lang . '|en',
+                    'languages' => $lang.'|en',
                     'props' => 'labels|descriptions|aliases|claims|sitelinks',
                     'origin' => '*',
                 ],
@@ -250,33 +256,35 @@ final class WikidataService
     ): int {
         // Parse CSV props -> array of P-codes
         $propsList = [];
-        if ($props !== null && $props !== '') {
+        if (null !== $props && '' !== $props) {
             $propsList = array_values(array_unique(array_filter(
                 preg_split('/[,\s]+/', $props) ?: [],
-                static fn(string $p) => preg_match('/^P\d+$/', $p) === 1
+                static fn (string $p) => 1 === preg_match('/^P\d+$/', $p)
             )));
         }
 
         // Auto-detect "Pxx=..." expressions in $query if --property not provided
-        if ($property === null && $query !== null) {
+        if (null === $property && null !== $query) {
             $parsed = $this->parsePropertyExpression($query);
-            if ($parsed !== null) {
+            if (null !== $parsed) {
                 [$property, $value] = $parsed;
                 $query = null; // treat as property search
             }
         }
 
         // Execute the search
-        if ($property !== null) {
-            if ($value === null || $value === '') {
+        if (null !== $property) {
+            if (null === $value || '' === $value) {
                 $io->error('When using --property, you must also provide --value (QID or literal).');
+
                 return Command::FAILURE;
             }
             /** @var SearchResult[] $results */
             $results = $this->searchBy($property, $value, $locale, $limit);
         } else {
-            if ($query === null || $query === '') {
+            if (null === $query || '' === $query) {
                 $io->error('Provide a search string (label), a property expression like "P31=Q33506", or use --property with --value.');
+
                 return Command::FAILURE;
             }
             $results = $this->search($query, $locale, $limit);
@@ -292,28 +300,30 @@ final class WikidataService
         }
 
         // Output
-        if (\strtolower($format) === 'json') {
+        if ('json' === \strtolower($format)) {
             $payload = array_map(function (SearchResult $r) use ($enrichedClaims): array {
                 $row = [
-                    'id'          => $r->id,
-                    'label'       => $r->label,
+                    'id' => $r->id,
+                    'label' => $r->label,
                     'description' => $r->description,
-                    'wiki_url'    => $r->wikiUrl,
-                    'aliases'     => $r->aliases,
+                    'wiki_url' => $r->wikiUrl,
+                    'aliases' => $r->aliases,
                 ];
                 if (isset($enrichedClaims[$r->id])) {
                     $row['claims'] = $enrichedClaims[$r->id];
                 }
+
                 return $row;
             }, $results);
 
-            $io->writeln(json_encode($payload, JSON_PRETTY_PRINT|JSON_UNESCAPED_SLASHES|JSON_UNESCAPED_UNICODE));
+            $io->writeln(json_encode($payload, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE));
+
             return Command::SUCCESS;
         }
 
         // Text output
         $io->title('Wikidata Search');
-        $criteria = $property !== null
+        $criteria = null !== $property
             ? sprintf('Property: %s  Value: %s  Locale: %s  Limit: %d', $property, $value, $locale, $limit)
             : sprintf('Query: %s  Locale: %s  Limit: %d', $query, $locale, $limit);
         $io->comment($criteria);
@@ -321,8 +331,9 @@ final class WikidataService
         $rows = array_map(static function (SearchResult $r): array {
             $desc = $r->description ?? '';
             if (\mb_strlen($desc) > 120) {
-                $desc = \mb_substr($desc, 0, 117) . '…';
+                $desc = \mb_substr($desc, 0, 117).'…';
             }
+
             return [$r->id, $r->label ?? '—', $desc, $r->wikiUrl ?? '—'];
         }, $results);
 
@@ -339,7 +350,7 @@ final class WikidataService
                 }
                 foreach ($claims as $pcode => $values) {
                     $display = implode(', ', array_map(
-                        static fn($v) => is_string($v) ? $v : json_encode($v, JSON_UNESCAPED_UNICODE|JSON_UNESCAPED_SLASHES),
+                        static fn ($v) => is_string($v) ? $v : json_encode($v, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES),
                         $values
                     ));
                     $propRows[] = [$r->id, $pcode, $display];
@@ -363,10 +374,10 @@ final class WikidataService
     ): int {
         // Parse and validate props CSV -> ['P18','P279',...]
         $propList = [];
-        if ($props !== null && $props !== '') {
+        if (null !== $props && '' !== $props) {
             foreach (preg_split('/[,\s]+/', $props) ?: [] as $p) {
                 $p = trim($p);
-                if ($p !== '' && preg_match('/^P\d+$/', $p)) {
+                if ('' !== $p && preg_match('/^P\d+$/', $p)) {
                     $propList[] = $p;
                 }
             }
@@ -375,8 +386,9 @@ final class WikidataService
 
         $entity = $this->get($qid, $lang, $propList);
 
-        if ($format === 'json') {
-            $io->writeln(json_encode($entity, JSON_PRETTY_PRINT|JSON_UNESCAPED_SLASHES|JSON_UNESCAPED_UNICODE));
+        if ('json' === $format) {
+            $io->writeln(json_encode($entity, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE));
+
             return Command::SUCCESS;
         }
 
@@ -393,14 +405,14 @@ final class WikidataService
             $rows = [];
             foreach ($entity['claims'] as $pcode => $values) {
                 $displayValues = array_map(
-                    static fn($v) => is_string($v) ? $v : json_encode($v, JSON_UNESCAPED_SLASHES|JSON_UNESCAPED_UNICODE),
+                    static fn ($v) => is_string($v) ? $v : json_encode($v, JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE),
                     $values
                 );
                 $rows[] = [$pcode, implode(', ', $displayValues)];
             }
             $io->table(['Property', 'Values'], $rows);
-        } elseif ($propList !== []) {
-            $io->warning('No values found for requested properties: ' . implode(', ', $propList));
+        } elseif ([] !== $propList) {
+            $io->warning('No values found for requested properties: '.implode(', ', $propList));
         } else {
             $io->comment('No properties were requested. Use --props=P18,P279 to fetch specific properties.');
         }
@@ -415,14 +427,15 @@ final class WikidataService
     private function parsePropertyExpression(string $expr): ?array
     {
         $expr = trim($expr);
-        if ($expr === '' || !preg_match('/^(P\d+)\s*(?:=|:)\s*(.+)$/u', $expr, $m)) {
+        if ('' === $expr || !preg_match('/^(P\d+)\s*(?:=|:)\s*(.+)$/u', $expr, $m)) {
             return null;
         }
         $valueRaw = trim($m[2]);
-        if ((str_starts_with($valueRaw, '"') && str_ends_with($valueRaw, '"')) ||
-            (str_starts_with($valueRaw, "'") && str_ends_with($valueRaw, "'"))) {
+        if ((str_starts_with($valueRaw, '"') && str_ends_with($valueRaw, '"'))
+            || (str_starts_with($valueRaw, "'") && str_ends_with($valueRaw, "'"))) {
             $valueRaw = mb_substr($valueRaw, 1, -1);
         }
+
         return [$m[1], $valueRaw];
     }
 
@@ -432,7 +445,7 @@ final class WikidataService
     public function fetchWikipediaPage(string $title, string $lang = 'en'): ?string
     {
         $url = sprintf('https://%s.wikipedia.org/wiki/%s?action=raw', $lang, $title);
-        $key = 'wd.wiki.raw.' . md5($url);
+        $key = 'wd.wiki.raw.'.md5($url);
 
         $content = $this->cache->get($key, function (ItemInterface $item) use ($url) {
             $item->expiresAfter(3600 * 24 * 30);
@@ -447,6 +460,7 @@ final class WikidataService
         if ($content && \preg_match('/Taxonbar\|from=([A-Z]\d+)/', $content, $m)) {
             return $m[1];
         }
+
         return null;
     }
 
@@ -460,13 +474,13 @@ final class WikidataService
         $resp = $this->http->request('GET', self::WD_API, [
             'headers' => $this->ua() + ['Accept' => 'application/json'],
             'query' => [
-                'action'   => 'wbsearchentities',
-                'format'   => 'json',
+                'action' => 'wbsearchentities',
+                'format' => 'json',
                 'language' => $lang,
-                'search'   => $search,
-                'limit'    => $limit,
-                'type'     => 'item',
-                'origin'   => '*',
+                'search' => $search,
+                'limit' => $limit,
+                'type' => 'item',
+                'origin' => '*',
             ],
         ]);
 
@@ -478,13 +492,14 @@ final class WikidataService
      * This avoids HTML responses from Special:EntityData in some situations.
      *
      * @param string[] $ids
+     *
      * @return array<int, array{id:string,label:?string,description:?string,aliases:array<int,string>,sitelinks:array<string,mixed>,wiki_url:?string}>
      */
     private function wbGetEntities(array $ids, string $lang, bool $includeSitelinks = true): array
     {
         // sanitize and chunk
         $ids = array_values(array_unique(array_filter($ids)));
-        if ($ids === []) {
+        if ([] === $ids) {
             return [];
         }
 
@@ -492,33 +507,33 @@ final class WikidataService
 
         $out = [];
         foreach ($chunks as $chunk) {
-            $props = ['labels','descriptions','aliases'];
+            $props = ['labels', 'descriptions', 'aliases'];
             if ($includeSitelinks) {
                 $props[] = 'sitelinks/urls';
             }
 
             $resp = $this->http->request('GET', self::WD_API, [
                 'headers' => $this->ua() + ['Accept' => 'application/json'],
-                'query'   => [
-                    'action'    => 'wbgetentities',
-                    'format'    => 'json',
-                    'ids'       => implode('|', $chunk),
-                    'languages' => $lang . '|en',
-                    'props'     => implode('|', $props),
-                    'origin'    => '*',
+                'query' => [
+                    'action' => 'wbgetentities',
+                    'format' => 'json',
+                    'ids' => implode('|', $chunk),
+                    'languages' => $lang.'|en',
+                    'props' => implode('|', $props),
+                    'origin' => '*',
                     // 'sitefilter' => $lang.'wiki', // uncomment to reduce sitelinks payload
                 ],
             ]);
 
             $data = $this->safeJson($resp);
 
-            $entities = (array)($data['entities'] ?? []);
+            $entities = (array) ($data['entities'] ?? []);
             foreach ($entities as $id => $body) {
                 if (!\is_array($body)) {
                     continue;
                 }
                 $label = $body['labels'][$lang]['value'] ?? ($body['labels']['en']['value'] ?? null);
-                $desc  = $body['descriptions'][$lang]['value'] ?? ($body['descriptions']['en']['value'] ?? null);
+                $desc = $body['descriptions'][$lang]['value'] ?? ($body['descriptions']['en']['value'] ?? null);
 
                 $aliases = [];
                 foreach (($body['aliases'][$lang] ?? []) as $aliasRow) {
@@ -527,22 +542,22 @@ final class WikidataService
                     }
                 }
 
-                $sitelinks = (array)($body['sitelinks'] ?? []);
+                $sitelinks = (array) ($body['sitelinks'] ?? []);
                 $wikiUrl = null;
                 if ($includeSitelinks) {
-                    $key = $lang . 'wiki';
+                    $key = $lang.'wiki';
                     if (isset($sitelinks[$key]['url'])) {
                         $wikiUrl = $sitelinks[$key]['url'];
                     }
                 }
 
                 $out[] = [
-                    'id'          => (string)$id,
-                    'label'       => $label,
+                    'id' => (string) $id,
+                    'label' => $label,
                     'description' => $desc,
-                    'aliases'     => $aliases,
-                    'sitelinks'   => $sitelinks,
-                    'wiki_url'    => $wikiUrl,
+                    'aliases' => $aliases,
+                    'sitelinks' => $sitelinks,
+                    'wiki_url' => $wikiUrl,
                 ];
             }
         }
@@ -561,19 +576,20 @@ final class WikidataService
      *  ]
      *
      * @param string[] $props
+     *
      * @return array<string, array<int, mixed>>
      */
     private function fetchClaimsForProps(string $qid, string $lang, array $props): array
     {
         // Sanitize to P-codes and dedupe
-        $props = \array_values(\array_unique(\array_filter($props, static fn($p) => preg_match('/^P\d+$/', $p))));
+        $props = \array_values(\array_unique(\array_filter($props, static fn ($p) => preg_match('/^P\d+$/', $p))));
 
-        if ($props === []) {
+        if ([] === $props) {
             return [];
         }
 
         // VALUES ?property { wd:P18 wd:P279 ... }
-        $values = \implode(' ', \array_map(static fn(string $p) => "wd:$p", $props));
+        $values = \implode(' ', \array_map(static fn (string $p) => "wd:$p", $props));
 
         $sparql = <<<SPARQL
             SELECT ?property ?propertyLabel ?statement ?propertyValue ?propertyValueLabel ?ps ?pq ?qualifier ?qualifierValue ?qualifierValueLabel
@@ -646,6 +662,7 @@ final class WikidataService
             }
             $rows[] = $row;
         }
+
         return $rows;
     }
 
@@ -657,12 +674,13 @@ final class WikidataService
         $content = $resp->getContent(false); // don't throw on HTTP error
         $ct = '';
         foreach ($resp->getHeaders(false)['content-type'] ?? [] as $h) {
-            $ct .= $h . ';';
+            $ct .= $h.';';
         }
 
         try {
             /** @var array $decoded */
             $decoded = \json_decode($content, true, flags: \JSON_THROW_ON_ERROR);
+
             return $decoded;
         } catch (\JsonException $e) {
             $snippet = \substr(\preg_replace('/\s+/', ' ', $content), 0, 300);
@@ -671,7 +689,7 @@ final class WikidataService
                 'contentType' => $ct,
                 'snippet' => $snippet,
             ]);
-            throw new \RuntimeException('Wikidata returned non-JSON or invalid JSON. ' . $snippet, previous: $e);
+            throw new \RuntimeException('Wikidata returned non-JSON or invalid JSON. '.$snippet, previous: $e);
         }
     }
 

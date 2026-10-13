@@ -46,6 +46,6 @@ class WikiProperty
     }
 
     public bool $isImage {
-        get => $this->datatype === 'commonsMedia';
+        get => 'commonsMedia' === $this->datatype;
     }
 }

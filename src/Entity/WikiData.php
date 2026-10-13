@@ -87,7 +87,7 @@ class WikiData
 
     public function isStale(int $ttlSeconds, \DateTimeImmutable $now): bool
     {
-        return $this->refreshedAt === null
+        return null === $this->refreshedAt
             || ($now->getTimestamp() - $this->refreshedAt->getTimestamp()) > $ttlSeconds;
     }
 }

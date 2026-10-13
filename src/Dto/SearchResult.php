@@ -1,4 +1,5 @@
 <?php
+
 declare(strict_types=1);
 
 namespace Survos\WikiBundle\Dto;
@@ -13,7 +14,8 @@ final class SearchResult
         public readonly array $aliases = [],
         public readonly ?string $wikiUrl = null,
         public readonly string $lang = 'en',
-    ) {}
+    ) {
+    }
 
     /**
      * @param array{
@@ -27,7 +29,7 @@ final class SearchResult
      */
     public static function fromArray(array $data, string $lang = 'en'): self
     {
-        $id = (string)($data['id'] ?? '');
+        $id = (string) ($data['id'] ?? '');
         $aliases = $data['aliases'] ?? [];
 
         $wikiUrl = $data['wiki_url'] ?? null;

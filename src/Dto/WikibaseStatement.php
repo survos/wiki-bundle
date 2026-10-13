@@ -15,7 +15,7 @@ final class WikibaseStatement
 {
     /**
      * @param array<string,list<WikibaseSnak>> $qualifiers property (Pxx) => ordered snak values
-     * @param list<array<string,mixed>> $references raw reference blocks, unparsed
+     * @param list<array<string,mixed>>        $references raw reference blocks, unparsed
      */
     public function __construct(
         public readonly string $id,
@@ -24,7 +24,8 @@ final class WikibaseStatement
         public readonly string $rank,
         public readonly array $qualifiers = [],
         public readonly array $references = [],
-    ) {}
+    ) {
+    }
 
     /** @param array<string,mixed> $claim */
     public static function fromArray(array $claim): self
@@ -41,7 +42,7 @@ final class WikibaseStatement
 
         return new self(
             id: (string) ($claim['id'] ?? ''),
-            property: $mainSnak->property !== '' ? $mainSnak->property : (string) ($claim['id'] ?? ''),
+            property: '' !== $mainSnak->property ? $mainSnak->property : (string) ($claim['id'] ?? ''),
             mainSnak: $mainSnak,
             rank: (string) ($claim['rank'] ?? 'normal'),
             qualifiers: $qualifiers,

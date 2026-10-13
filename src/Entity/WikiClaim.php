@@ -45,16 +45,17 @@ class WikiClaim
 
         #[ORM\Column(type: Types::SMALLINT, options: ['default' => 0])]
         public private(set) int $position = 0,
-    ) {}
+    ) {
+    }
 
     public bool $isImage {
-        get => $this->datatype === 'commonsMedia';
+        get => 'commonsMedia' === $this->datatype;
     }
 
     /** Resolve a commonsMedia value to a fetchable https URL. */
     public ?string $url {
         get => $this->isImage
-            ? 'https://commons.wikimedia.org/wiki/Special:FilePath/' . rawurlencode($this->value)
+            ? 'https://commons.wikimedia.org/wiki/Special:FilePath/'.rawurlencode($this->value)
             : null;
     }
 
