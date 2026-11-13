@@ -30,11 +30,6 @@ final class SurvosWikiBundle extends AbstractSurvosBundle
     use HasDoctrineEntities;
     use HasConfigurableRoutes;
 
-    protected function doctrineAlias(): string
-    {
-        return 'Wiki';
-    }
-
     public function configure(DefinitionConfigurator $definition): void
     {
         $children = $definition->rootNode()->children();
